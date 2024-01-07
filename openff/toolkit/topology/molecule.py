@@ -1164,13 +1164,21 @@ class FrozenMolecule(Serializable):
 
         if self._partial_charges is None:
             molecule_dict["partial_charges"] = None
-            molecule_dict["partial_charge_unit"] = None
+            try:
+                molecule_dict["partial_charge_unit"] = None
+            except:
+                # handle openff-toolkits < 0.11.0
+                molecule_dict["partial_charges_unit"] = None
 
         else:
             molecule_dict["partial_charges"], _ = serialize_numpy(
                 self._partial_charges.m_as(unit.elementary_charge)
             )
-            molecule_dict["partial_charge_unit"] = "elementary_charge"
+            try:
+                molecule_dict["partial_charge_unit"] = "elementary_charge"
+            except:
+                # handle openff-toolkits < 0.11.0
+                molecule_dict["partial_charges_unit"] = "elementary_charge"
 
         molecule_dict["hierarchy_schemes"] = dict()
         for iter_name, hier_scheme in self._hierarchy_schemes.items():
@@ -1250,11 +1258,18 @@ class FrozenMolecule(Serializable):
         else:
             from openff.toolkit.utils.utils import deserialize_numpy
 
-            self._partial_charges = Quantity(
-                deserialize_numpy(molecule_dict["partial_charges"], (self.n_atoms,)),
-                unit.Unit(molecule_dict["partial_charge_unit"]),
-            )
-
+            try:
+                self._partial_charges = Quantity(
+                    deserialize_numpy(molecule_dict["partial_charges"], (self.n_atoms,)),
+                    unit.Unit(molecule_dict["partial_charge_unit"]),
+                )
+            except:
+                # handle openff-toolkits < 0.11.0
+                self._partial_charges = Quantity(
+                    deserialize_numpy(molecule_dict["partial_charges"], (self.n_atoms,)),
+                    unit.Unit(molecule_dict["partial_charges_unit"]),
+                )
+            
         if molecule_dict["conformers"] is None:
             self._conformers = None
         else:
